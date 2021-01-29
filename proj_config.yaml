@@ -1,0 +1,41 @@
+sampling_rate: 192000  # 44100
+sampling_duration: 1.0
+
+mel: {
+       n_fft: 1764,
+       hop_length: 220,
+       n_mels: 64,
+       mel_len: 961  # 1.1: 961, 1.0: 873, 0.5: 437
+}
+
+data_path: "./input/train_data.p"
+csv_path: "./input/training.csv"
+wav_dir: "./input/training/"
+max_val: 18.07428
+min_val: -100.0
+
+n_folds: 10
+fold_seed: 1337
+
+num_epochs: 2
+save_model: True
+model_dir: "./model/"
+experiment_name: 'testing'
+loader_params: {'batch_size': 16, 'shuffle': True, 'num_workers': 4}
+pretrained_path: './pretrained/mobilenetv3-small-55df8e1f.pth'
+
+lr: 0.001
+
+ignore_files: [
+  '00002.wav',
+  '00044.wav',
+  '00079.wav',
+  '00172.wav',
+  '00306.wav',
+  '00396.wav',
+  '00540.wav',
+  '00629.wav',
+  '00650.wav',
+  '00723.wav',
+  '01164.wav'
+]
