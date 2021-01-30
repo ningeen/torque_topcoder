@@ -11,6 +11,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from mobilenetv3 import mobilenetv3_small, mobilenetv3_large
+from cosine_annearing_with_warmup import CosineAnnealingWarmupRestarts
 from pytorch_dataset import TorqueDataset
 from read_and_get_mel import CONFIG
 
@@ -107,13 +108,15 @@ def process_epoch(model, criterion, optimizer, loader):
     return loss_train, rmse_train, y_true, y_pred
 
 
-def train_model(model, criterion, optimizer, train_loader, test_loader, n_fold):
+def train_model(model, criterion, optimizer, scheduler, train_loader, test_loader, n_fold):
     """Training loop"""
     logs = {'loss_train': [], 'loss_val': [], 'mse_train': [], 'mse_val': []}
     best_true = None
     best_pred = None
     for epoch in range(CONFIG['num_epochs']):
         start_time = time.time()
+        scheduler.step()
+
         # Training
         model.train()
         loss_train, mse_train, _, _ = \
@@ -177,13 +180,20 @@ def run_training():
         model = get_model(CONFIG['pretrained_path'])
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), CONFIG['lr'])
+
+        CONFIG['scheduler_params']['max_lr'] *= CONFIG['lr']
+        CONFIG['scheduler_params']['min_lr'] *= CONFIG['lr']
+        scheduler = CosineAnnealingWarmupRestarts(optimizer,
+                                                  **CONFIG['scheduler_params'])
+
         best_true, best_pred = \
-            train_model(model, criterion, optimizer, train_loader, val_loader, n_fold)
+            train_model(model, criterion, optimizer, scheduler, train_loader, val_loader, n_fold)
 
         rmse = mean_squared_error(best_true, best_pred, squared=False)
         print(f"Training done. Best rmse: {rmse}")
         total_rmse.append(rmse)
     print(f"Total rmse: {np.mean(total_rmse)}")
+
 
 if __name__ == "__main__":
     seed_everything()

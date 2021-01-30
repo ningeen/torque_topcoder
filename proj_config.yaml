@@ -17,7 +17,7 @@ min_val: -100.0
 n_folds: 10
 fold_seed: 1337
 
-num_epochs: 15
+num_epochs: 16
 save_model: True
 model_dir: "./model/"
 experiment_name: 'testing'
@@ -25,8 +25,16 @@ loader_params: {'batch_size': 16, 'shuffle': True, 'num_workers': 4}
 #pretrained_path: './pretrained/mobilenetv3-small-55df8e1f.pth'
 pretrained_path: './pretrained/mobilenetv3-large-1cd25616.pth'
 
-lr: 0.00005
+lr: 0.00003
 warmup_prop: 0.1
+scheduler_params: {
+  'first_cycle_steps': 8,
+  'cycle_mult': 1.0,
+  'max_lr': 5,    # THIS IS MULTIPLIER!!!
+  'min_lr': 0.1,  # THIS IS MULTIPLIER!!!
+  'warmup_steps': 2,
+  'gamma': 1.0
+}
 
 ignore_files: [
   '00002.wav',
