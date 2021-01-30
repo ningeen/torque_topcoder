@@ -129,8 +129,8 @@ def train_model(model, criterion, optimizer, train_loader, test_loader, n_fold):
         print(
             f"Epoch #{epoch + 1}. "
             f"Time: {(time.time() - start_time):.1f}s. "
-            f"Train loss: {loss_train:.3f}, train mse: {mse_train:.5f}. "
-            f"Val loss: {loss_val:.3f}, val mse: {mse_val:.5f}"
+            f"Train loss: {loss_train:.3f}, train rmse: {mse_train:.5f}. "
+            f"Val loss: {loss_val:.3f}, val rmse: {mse_val:.5f}"
         )
         if mse_val <= np.min(logs['mse_val']):
             if CONFIG['save_model']:
@@ -157,6 +157,7 @@ def run_training():
     )
     splits = list(folds.split(mel_logs))
 
+    total_rmse = list()
     for n_fold, (train_idx, val_idx) in enumerate(splits):
         print(f"Start #{n_fold + 1} fold")
         train_dataset = TorqueDataset(
@@ -180,9 +181,8 @@ def run_training():
 
         rmse = mean_squared_error(best_true, best_pred, squared=False)
         print(f"Training done. Best rmse: {rmse}")
-        if n_fold == 2:
-            break
-
+        total_rmse.append(rmse)
+    print(f"Total rmse: {np.mean(total_rmse)}")
 
 if __name__ == "__main__":
     seed_everything()

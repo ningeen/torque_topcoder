@@ -1,21 +1,7 @@
-import os
-import random
-import time
-import logging
-import logging.config
-import pickle
-import yaml
-import librosa
 import numpy as np
-import torch
-from scipy.optimize import minimize
-from sklearn.metrics import roc_auc_score, f1_score
-from torch import nn
-from torch.utils.data import Dataset, DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingLR
-from read_and_get_mel import CONFIG
+from torch.utils.data import Dataset
 
-from mobilenetv3 import mobilenetv3_small
+from read_and_get_mel import CONFIG
 
 
 def uniform_len(mel, input_len):

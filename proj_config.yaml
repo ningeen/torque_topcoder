@@ -17,14 +17,16 @@ min_val: -100.0
 n_folds: 10
 fold_seed: 1337
 
-num_epochs: 2
+num_epochs: 15
 save_model: True
 model_dir: "./model/"
 experiment_name: 'testing'
 loader_params: {'batch_size': 16, 'shuffle': True, 'num_workers': 4}
 pretrained_path: './pretrained/mobilenetv3-small-55df8e1f.pth'
 
-lr: 0.001
+
+lr: 0.00005
+warmup_prop: 0.1
 
 ignore_files: [
   '00002.wav',
