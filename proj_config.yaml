@@ -22,8 +22,8 @@ save_model: True
 model_dir: "./model/"
 experiment_name: 'testing'
 loader_params: {'batch_size': 16, 'shuffle': True, 'num_workers': 4}
-pretrained_path: './pretrained/mobilenetv3-small-55df8e1f.pth'
-
+#pretrained_path: './pretrained/mobilenetv3-small-55df8e1f.pth'
+pretrained_path: './pretrained/mobilenetv3-large-1cd25616.pth'
 
 lr: 0.00005
 warmup_prop: 0.1

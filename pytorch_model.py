@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 from torch import nn
 from torch.utils.data import DataLoader
 
-from mobilenetv3 import mobilenetv3_small
+from mobilenetv3 import mobilenetv3_small, mobilenetv3_large
 from pytorch_dataset import TorqueDataset
 from read_and_get_mel import CONFIG
 
@@ -55,7 +55,8 @@ def load_model_weights(model, filename, verbose=1):
 
 def get_model(pretrained_mn3_path="", pretrained_path=""):
     """Load MobilenetV3 model with specified in and out channels"""
-    model = mobilenetv3_small().to(DEVICE)
+    # model = mobilenetv3_small().to(DEVICE)
+    model = mobilenetv3_large().to(DEVICE)
     if pretrained_mn3_path and not pretrained_path:
         model.load_state_dict(torch.load(pretrained_mn3_path))
 
