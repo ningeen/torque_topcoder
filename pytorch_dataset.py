@@ -33,6 +33,7 @@ class TorqueDataset(Dataset):
         self.labels = labels
         self.transform = transform
         self.input_len = CONFIG['mel']['mel_len']
+        self.mode = 'test' if self.labels is None else 'train'
 
     def __len__(self):
         """Length"""
@@ -43,11 +44,11 @@ class TorqueDataset(Dataset):
         table_data = self.data[[index]]
 
         label = None
-        if self.labels is not None:
+        if self.mode == 'train':
             label = self.labels[[index]]
 
         mel_data = uniform_len(self.mel_logs[index], self.input_len)
-        if self.transform:
+        if self.transform and self.mode == 'train':
             mel_data = self.transform(mel_data)
 
         mel_data = np.expand_dims(mel_data, axis=0)
