@@ -21,7 +21,12 @@ num_epochs: 40
 save_model: True
 model_dir: "./model/"
 experiment_name: 'testing'
-loader_params: {'batch_size': 16, 'shuffle': True, 'num_workers': 4}
+loader_params: {
+  'batch_size': 16,
+  'shuffle': 1,
+  'num_workers': 4,
+  'pin_memory': 0
+}
 #pretrained_path: './pretrained/mobilenetv3-small-55df8e1f.pth'
 pretrained_path: './pretrained/mobilenetv3-large-1cd25616.pth'
 
@@ -34,6 +39,12 @@ scheduler_params: {
   'min_lr': 0.125,  # THIS IS MULTIPLIER!!!
   'warmup_steps': 5,
   'gamma': 0.9
+}
+
+model_params: {
+  out_features_conv: 1000,
+  out_features_dence: 14,
+  mid_features: 500
 }
 
 ignore_files: [

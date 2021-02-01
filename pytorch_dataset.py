@@ -41,7 +41,7 @@ class TorqueDataset(Dataset):
 
     def __getitem__(self, index):
         """Generates one sample of data"""
-        table_data = self.data[[index]]
+        table_data = self.data[index]
 
         label = None
         if self.mode == 'train':
@@ -52,4 +52,4 @@ class TorqueDataset(Dataset):
             mel_data = self.transform(mel_data)
 
         mel_data = np.expand_dims(mel_data, axis=0)
-        return mel_data, label
+        return mel_data, table_data, label

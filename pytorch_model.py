@@ -9,6 +9,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from torch import nn
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 
 from mobilenetv3 import mobilenetv3_small, mobilenetv3_large
 from cosine_annearing_with_warmup import CosineAnnealingWarmupRestarts
@@ -16,6 +17,7 @@ from pytorch_dataset import TorqueDataset
 from read_and_get_mel import CONFIG
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.backends.cudnn.benchmark = True
 
 def seed_everything(seed=1234):
     """Fix random seeds"""
@@ -59,7 +61,7 @@ def spec_augment(spec: np.ndarray, num_mask=2, freq_masking_max_percentage=0.05,
     return spec
 
 
-def get_model(pretrained_mn3_path="", pretrained_path=""):
+def get_mobilenet_model(out_features, pretrained_mn3_path="", pretrained_path=""):
     """Load MobilenetV3 model with specified in and out channels"""
     # model = mobilenetv3_small().to(DEVICE)
     model = mobilenetv3_large().to(DEVICE)
@@ -71,18 +73,38 @@ def get_model(pretrained_mn3_path="", pretrained_path=""):
     )
     model.features[0][0].in_channels = 1
 
-    model.classifier[-1].weight.data = torch.sum(
-        model.classifier[-1].weight.data, dim=0, keepdim=True
-    )
-
-    model.classifier[-1].bias.data = torch.sum(
-        model.classifier[-1].bias.data, dim=0, keepdim=True
-    )
-    model.classifier[-1].out_features = 1
+    # model.classifier[-1].weight.data = torch.sum(
+    #     model.classifier[-1].weight.data, dim=0, keepdim=True
+    # )
+    #
+    # model.classifier[-1].bias.data = torch.sum(
+    #     model.classifier[-1].bias.data, dim=0, keepdim=True
+    # )
+    # model.classifier[-1].out_features = out_features
 
     if pretrained_path:
         model.load_state_dict(torch.load(pretrained_path))
     return model
+
+
+class TorqueModel(nn.Module):
+    def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path="", pretrained_path=""):
+        super(TorqueModel, self).__init__()
+        self.mnet = get_mobilenet_model(out_features_conv, pretrained_mn3_path, pretrained_path)
+        self.fc1 = nn.Linear(out_features_conv + out_features_dence, mid_features)
+        self.fc2 = nn.Linear(mid_features, mid_features)
+        self.fc3 = nn.Linear(mid_features, 1)
+
+    def forward(self, image, data):
+        x1 = self.mnet(image)
+        x2 = data
+        # print(type(x1), type(x2))
+        # print(x1.shape, x2.shape)
+        x = torch.cat((x1, x2), dim=1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 
 def process_epoch(model, criterion, optimizer, loader):
@@ -91,12 +113,14 @@ def process_epoch(model, criterion, optimizer, loader):
     y_true = []
     y_pred = []
     with torch.set_grad_enabled(model.training):
-        for local_batch, local_labels in loader:
-            local_batch, local_labels = \
-                local_batch.to(DEVICE), local_labels.to(DEVICE)
+        for local_batch, local_data, local_labels in loader:
+            local_batch, local_data, local_labels = \
+                local_batch.to(DEVICE), local_data.to(DEVICE), local_labels.to(DEVICE)
 
-            optimizer.zero_grad()
-            outputs = model(local_batch)
+            # optimizer.zero_grad()
+            for param in model.parameters():
+                param.grad = None
+            outputs = model(local_batch, local_data)
 
             loss = criterion(outputs, local_labels)
             if model.training:
@@ -183,7 +207,12 @@ def run_training():
         train_loader = DataLoader(train_dataset, **CONFIG['loader_params'])
         val_loader = DataLoader(val_dataset, **CONFIG['loader_params'])
 
-        model = get_model(CONFIG['pretrained_path'])
+        model = TorqueModel(
+            CONFIG['model_params']['out_features_conv'],
+            CONFIG['model_params']['out_features_dence'],
+            CONFIG['model_params']['mid_features'],
+            CONFIG['pretrained_path']
+        )
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), CONFIG['lr'])
 
