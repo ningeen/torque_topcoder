@@ -54,7 +54,7 @@ def get_mel(wav_files):
         features.append(mel.astype(np.float32))
     return features
 
-def get_data(csv_path, wav_dir, data_path):
+def get_data(csv_path, wav_dir, data_path, to_save=True):
     df = pd.read_csv(csv_path)  # .head(10)
     df = df[~df['filename'].isin(CONFIG['ignore_files'])]
 
@@ -82,8 +82,11 @@ def get_data(csv_path, wav_dir, data_path):
     data = data.to_numpy().astype(np.float32)
     target = target.to_numpy().astype(np.float32)
 
-    with open(data_path, 'wb') as f:
-        pickle.dump((data, mel_logs, target), f)
+    if to_save:
+        with open(data_path, 'wb') as f:
+            pickle.dump((data, mel_logs, target), f)
+
+    return data, mel_logs, target
 
 
 if __name__ == "__main__":

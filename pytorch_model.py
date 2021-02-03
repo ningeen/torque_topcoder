@@ -61,10 +61,10 @@ def spec_augment(spec: np.ndarray, num_mask=2, freq_masking_max_percentage=0.05,
     return spec
 
 
-def get_mobilenet_model(out_features, pretrained_mn3_path="", pretrained_path=""):
+def get_mobilenet_model(pretrained_mn3_path="", pretrained_path="", device=DEVICE):
     """Load MobilenetV3 model with specified in and out channels"""
     # model = mobilenetv3_small().to(DEVICE)
-    model = mobilenetv3_large().to(DEVICE)
+    model = mobilenetv3_large().to(device)
     if pretrained_mn3_path and not pretrained_path:
         model.load_state_dict(torch.load(pretrained_mn3_path))
 
@@ -90,7 +90,7 @@ def get_mobilenet_model(out_features, pretrained_mn3_path="", pretrained_path=""
 class TorqueModel(nn.Module):
     def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path="", pretrained_path=""):
         super(TorqueModel, self).__init__()
-        self.mnet = get_mobilenet_model(out_features_conv, pretrained_mn3_path, pretrained_path)
+        self.mnet = get_mobilenet_model(pretrained_mn3_path, pretrained_path)
         self.fc1 = nn.Linear(out_features_conv + out_features_dence, mid_features)
         self.fc2 = nn.Linear(mid_features, mid_features)
         self.fc3 = nn.Linear(mid_features, 1)
@@ -179,9 +179,12 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
     return best_true, best_pred
 
 
-def run_training():
-    with open(CONFIG['data_path'], 'rb') as f:
-        (data, mel_logs, target) = pickle.load(f)
+def run_training(all_data=None):
+    if all_data is None:
+        with open(CONFIG['data_path'], 'rb') as f:
+            (data, mel_logs, target) = pickle.load(f)
+    else:
+        (data, mel_logs, target) = all_data
 
     folds = KFold(
         n_splits=CONFIG['n_folds'],
@@ -228,6 +231,25 @@ def run_training():
         print(f"Training done. Best rmse: {rmse}")
         total_rmse.append(rmse)
     print(f"Total rmse: {np.mean(total_rmse)}")
+
+
+def get_prediction(data, mel_logs, target, model, device):
+    test_dataset = TorqueDataset(data, mel_logs, target)
+    loader = DataLoader(test_dataset, **CONFIG['loader_params'])
+
+    model = model.to(device)
+    model.eval()
+    for param in model.parameters():
+        param.grad = None
+
+    y_pred = []
+    for local_batch, local_data, local_labels in loader:
+        local_batch, local_data, local_labels = \
+            local_batch.to(device), local_data.to(device), local_labels.to(
+                device)
+        outputs = model(local_batch, local_data)
+        y_pred.append(outputs.data.detach().numpy())
+    return np.concatenate(y_pred)
 
 
 if __name__ == "__main__":
