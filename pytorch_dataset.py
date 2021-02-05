@@ -52,4 +52,6 @@ class TorqueDataset(Dataset):
             mel_data = self.transform(mel_data)
 
         mel_data = np.expand_dims(mel_data, axis=0)
+        if label is None:
+            return mel_data, table_data
         return mel_data, table_data, label

@@ -66,7 +66,7 @@ def get_mobilenet_model(pretrained_mn3_path="", pretrained_path="", device=DEVIC
     # model = mobilenetv3_small().to(DEVICE)
     model = mobilenetv3_large().to(device)
     if pretrained_mn3_path and not pretrained_path:
-        model.load_state_dict(torch.load(pretrained_mn3_path))
+        model.load_state_dict(torch.load(pretrained_mn3_path, map_location=device))
 
     model.features[0][0].weight.data = torch.sum(
         model.features[0][0].weight.data, dim=1, keepdim=True
@@ -83,12 +83,12 @@ def get_mobilenet_model(pretrained_mn3_path="", pretrained_path="", device=DEVIC
     # model.classifier[-1].out_features = out_features
 
     if pretrained_path:
-        model.load_state_dict(torch.load(pretrained_path))
+        model.load_state_dict(torch.load(pretrained_path, map_location=device), strict=False)
     return model
 
 
 class TorqueModel(nn.Module):
-    def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path="", pretrained_path=""):
+    def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path="", pretrained_path="", device=DEVICE):
         super(TorqueModel, self).__init__()
         self.mnet = get_mobilenet_model(pretrained_mn3_path, pretrained_path)
         self.fc1 = nn.Linear(out_features_conv + out_features_dence, mid_features)
@@ -233,9 +233,15 @@ def run_training(all_data=None):
     print(f"Total rmse: {np.mean(total_rmse)}")
 
 
-def get_prediction(data, mel_logs, target, model, device):
-    test_dataset = TorqueDataset(data, mel_logs, target)
-    loader = DataLoader(test_dataset, **CONFIG['loader_params'])
+def get_prediction(data, mel_logs, model, device):
+    test_dataset = TorqueDataset(data, mel_logs)
+    loader = DataLoader(
+        test_dataset,
+        batch_size=CONFIG['loader_params']['batch_size'],
+        num_workers=CONFIG['loader_params']['num_workers'],
+        pin_memory=True,
+        shuffle=False
+    )
 
     model = model.to(device)
     model.eval()
@@ -243,10 +249,8 @@ def get_prediction(data, mel_logs, target, model, device):
         param.grad = None
 
     y_pred = []
-    for local_batch, local_data, local_labels in loader:
-        local_batch, local_data, local_labels = \
-            local_batch.to(device), local_data.to(device), local_labels.to(
-                device)
+    for local_batch, local_data in loader:
+        local_batch, local_data = local_batch.to(device), local_data.to(device)
         outputs = model(local_batch, local_data)
         y_pred.append(outputs.data.detach().numpy())
     return np.concatenate(y_pred)

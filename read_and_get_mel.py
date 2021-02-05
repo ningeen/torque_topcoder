@@ -9,8 +9,12 @@ from scipy.stats import skew
 
 
 CONFIG_PATH = "proj_config.yaml"
-with open(CONFIG_PATH, 'r') as stream:
-    CONFIG = yaml.safe_load(stream)
+try:
+    with open(CONFIG_PATH, 'r') as stream:
+        CONFIG = yaml.safe_load(stream)
+except FileNotFoundError as e:
+    with open(os.path.join('/code', CONFIG_PATH), 'r') as stream:
+        CONFIG = yaml.safe_load(stream)
 
 
 def read_file(path):
@@ -54,9 +58,10 @@ def get_mel(wav_files):
         features.append(mel.astype(np.float32))
     return features
 
-def get_data(csv_path, wav_dir, data_path, to_save=True):
+def get_data(csv_path, wav_dir, data_path, to_save=True, is_train=True):
     df = pd.read_csv(csv_path)  # .head(10)
-    df = df[~df['filename'].isin(CONFIG['ignore_files'])]
+    if is_train:
+        df = df[~df['filename'].isin(CONFIG['ignore_files'])]
 
     data = []
     dummy_cols = ['device_id', 'junction_type', 'is_flange']
@@ -77,10 +82,9 @@ def get_data(csv_path, wav_dir, data_path, to_save=True):
 
     target = None
     if 'tightening_result_torque' in df.columns:
-        target = df['tightening_result_torque']
+        target = df['tightening_result_torque'].to_numpy().astype(np.float32)
 
     data = data.to_numpy().astype(np.float32)
-    target = target.to_numpy().astype(np.float32)
 
     if to_save:
         with open(data_path, 'wb') as f:
