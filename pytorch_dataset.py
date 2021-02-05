@@ -39,6 +39,13 @@ class TorqueDataset(Dataset):
         """Length"""
         return len(self.mel_logs)
 
+    def add_frequency_encoding(self, x):
+        d, h, w = x.shape
+        vertical = np.linspace(-1, 1, h).reshape((1, -1, 1))
+        vertical = np.repeat(vertical, w, axis=2)
+        x = np.concatenate([x, vertical], axis=0)
+        return x.astype(np.float32)
+
     def __getitem__(self, index):
         """Generates one sample of data"""
         table_data = self.data[index]
@@ -52,6 +59,8 @@ class TorqueDataset(Dataset):
             mel_data = self.transform(mel_data)
 
         mel_data = np.expand_dims(mel_data, axis=0)
+        if CONFIG['channels'] == 2:
+            mel_data = self.add_frequency_encoding(mel_data)
         if label is None:
             return mel_data, table_data
         return mel_data, table_data, label

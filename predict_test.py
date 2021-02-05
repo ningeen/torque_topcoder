@@ -33,8 +33,7 @@ device = torch.device("cpu")
 model = TorqueModel(
     CONFIG['model_params']['out_features_conv'],
     CONFIG['model_params']['out_features_dence'],
-    CONFIG['model_params']['mid_features'],
-    device=device
+    CONFIG['model_params']['mid_features']
 )
 
 csv_path = os.path.join(INPUT_AUDIO, INPUT_CSV)
@@ -52,7 +51,7 @@ start = time.time()
 num_folds = 10
 y_pred = np.zeros((len(mel_logs), 1))
 for i in range(num_folds):
-    fname = f'work_add_table_fold{i}.pt'
+    fname = f'work_{CONFIG["experiment_name"]}_fold{i}.pt'
     pretrained_path = os.path.join(MODEL_DIR, fname)
     if not os.path.isfile(pretrained_path):
         pretrained_path = search_file(fname)

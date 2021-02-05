@@ -17,10 +17,11 @@ min_val: -100.0
 n_folds: 10
 fold_seed: 1337
 
+channels: 2
 num_epochs: 40
 save_model: True
 model_dir: "./model/"
-experiment_name: 'testing'
+experiment_name: 'origin_2ch'
 loader_params: {
   'batch_size': 16,
   'shuffle': 1,

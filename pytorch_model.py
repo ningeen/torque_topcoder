@@ -61,36 +61,27 @@ def spec_augment(spec: np.ndarray, num_mask=2, freq_masking_max_percentage=0.05,
     return spec
 
 
-def get_mobilenet_model(pretrained_mn3_path="", pretrained_path="", device=DEVICE):
+def get_mobilenet_model(pretrained_mn3_path="", channels=CONFIG['channels']):
     """Load MobilenetV3 model with specified in and out channels"""
-    # model = mobilenetv3_small().to(DEVICE)
-    model = mobilenetv3_large().to(device)
-    if pretrained_mn3_path and not pretrained_path:
-        model.load_state_dict(torch.load(pretrained_mn3_path, map_location=device))
+    model = mobilenetv3_large()
+    if pretrained_mn3_path:
+        model.load_state_dict(torch.load(pretrained_mn3_path))
 
-    model.features[0][0].weight.data = torch.sum(
-        model.features[0][0].weight.data, dim=1, keepdim=True
-    )
-    model.features[0][0].in_channels = 1
+    if channels == 1:
+        model.features[0][0].weight.data = torch.sum(
+            model.features[0][0].weight.data, dim=1, keepdim=True
+        )
+    elif channels == 2:
+        model.features[0][0].weight.data = model.features[0][0].weight.data[:, :2]
+    model.features[0][0].in_channels = channels
 
-    # model.classifier[-1].weight.data = torch.sum(
-    #     model.classifier[-1].weight.data, dim=0, keepdim=True
-    # )
-    #
-    # model.classifier[-1].bias.data = torch.sum(
-    #     model.classifier[-1].bias.data, dim=0, keepdim=True
-    # )
-    # model.classifier[-1].out_features = out_features
-
-    if pretrained_path:
-        model.load_state_dict(torch.load(pretrained_path, map_location=device), strict=False)
     return model
 
 
 class TorqueModel(nn.Module):
-    def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path="", pretrained_path="", device=DEVICE):
+    def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path=""):
         super(TorqueModel, self).__init__()
-        self.mnet = get_mobilenet_model(pretrained_mn3_path, pretrained_path)
+        self.mnet = get_mobilenet_model(pretrained_mn3_path)
         self.fc1 = nn.Linear(out_features_conv + out_features_dence, mid_features)
         self.fc2 = nn.Linear(mid_features, mid_features)
         self.fc3 = nn.Linear(mid_features, 1)
@@ -98,8 +89,6 @@ class TorqueModel(nn.Module):
     def forward(self, image, data):
         x1 = self.mnet(image)
         x2 = data
-        # print(type(x1), type(x2))
-        # print(x1.shape, x2.shape)
         x = torch.cat((x1, x2), dim=1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
