@@ -17,11 +17,11 @@ min_val: -100.0
 n_folds: 10
 fold_seed: 1337
 
-channels: 2
+channels: 1
 num_epochs: 40
 save_model: True
 model_dir: "./model/"
-experiment_name: 'origin_2ch'
+experiment_name: 'mixup'
 loader_params: {
   'batch_size': 16,
   'shuffle': 1,
@@ -44,7 +44,7 @@ scheduler_params: {
 
 model_params: {
   out_features_conv: 1000,
-  out_features_dence: 14,
+  out_features_dence: 9,
   mid_features: 500
 }
 

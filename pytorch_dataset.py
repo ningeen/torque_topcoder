@@ -34,6 +34,7 @@ class TorqueDataset(Dataset):
         self.transform = transform
         self.input_len = CONFIG['mel']['mel_len']
         self.mode = 'test' if self.labels is None else 'train'
+        self.n_feat = CONFIG['model_params']['out_features_dence']
 
     def __len__(self):
         """Length"""
@@ -48,7 +49,7 @@ class TorqueDataset(Dataset):
 
     def __getitem__(self, index):
         """Generates one sample of data"""
-        table_data = self.data[index]
+        table_data = self.data[index][:self.n_feat]
 
         label = None
         if self.mode == 'train':
