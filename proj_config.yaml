@@ -21,7 +21,7 @@ channels: 1
 num_epochs: 40
 save_model: True
 model_dir: "./model/"
-experiment_name: 'mixup'
+experiment_name: ['origin_2ch', 'part_new_augs', 'mixup']
 loader_params: {
   'batch_size': 16,
   'shuffle': 1,

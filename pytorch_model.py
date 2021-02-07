@@ -61,27 +61,27 @@ def spec_augment(spec: np.ndarray, num_mask=2, freq_masking_max_percentage=0.05,
     return spec
 
 
-def get_mobilenet_model(pretrained_mn3_path="", channels=CONFIG['channels']):
+def get_mobilenet_model(pretrained_mn3_path="", n_channels=1):
     """Load MobilenetV3 model with specified in and out channels"""
     model = mobilenetv3_large()
     if pretrained_mn3_path:
         model.load_state_dict(torch.load(pretrained_mn3_path))
 
-    if channels == 1:
+    if n_channels == 1:
         model.features[0][0].weight.data = torch.sum(
             model.features[0][0].weight.data, dim=1, keepdim=True
         )
-    elif channels == 2:
+    elif n_channels == 2:
         model.features[0][0].weight.data = model.features[0][0].weight.data[:, :2]
-    model.features[0][0].in_channels = channels
+    model.features[0][0].in_channels = n_channels
 
     return model
 
 
 class TorqueModel(nn.Module):
-    def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path=""):
+    def __init__(self, out_features_conv, out_features_dence, mid_features, pretrained_mn3_path="", n_channels=1):
         super(TorqueModel, self).__init__()
-        self.mnet = get_mobilenet_model(pretrained_mn3_path)
+        self.mnet = get_mobilenet_model(pretrained_mn3_path, n_channels=n_channels)
         self.fc1 = nn.Linear(out_features_conv + out_features_dence, mid_features)
         self.fc2 = nn.Linear(mid_features, mid_features)
         self.fc3 = nn.Linear(mid_features, 1)
@@ -222,8 +222,8 @@ def run_training(all_data=None):
     print(f"Total rmse: {np.mean(total_rmse)}")
 
 
-def get_prediction(data, mel_logs, model, device):
-    test_dataset = TorqueDataset(data, mel_logs)
+def get_prediction(data, mel_logs, model, device, n_feat, n_channels=1):
+    test_dataset = TorqueDataset(data, mel_logs, n_feat=n_feat, n_channels=n_channels)
     loader = DataLoader(
         test_dataset,
         batch_size=CONFIG['loader_params']['batch_size'],

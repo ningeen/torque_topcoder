@@ -26,7 +26,7 @@ def uniform_len(mel, input_len):
 class TorqueDataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, data, mel_logs, labels=None, transform=None):
+    def __init__(self, data, mel_logs, labels=None, transform=None, n_feat=14, n_channels=1):
         """Init Dataset"""
         self.mel_logs = mel_logs
         self.data = data
@@ -34,7 +34,8 @@ class TorqueDataset(Dataset):
         self.transform = transform
         self.input_len = CONFIG['mel']['mel_len']
         self.mode = 'test' if self.labels is None else 'train'
-        self.n_feat = CONFIG['model_params']['out_features_dence']
+        self.n_feat = n_feat  # CONFIG['model_params']['out_features_dence']
+        self.n_channels = n_channels
 
     def __len__(self):
         """Length"""
@@ -60,7 +61,7 @@ class TorqueDataset(Dataset):
             mel_data = self.transform(mel_data)
 
         mel_data = np.expand_dims(mel_data, axis=0)
-        if CONFIG['channels'] == 2:
+        if self.n_channels == 2:
             mel_data = self.add_frequency_encoding(mel_data)
         if label is None:
             return mel_data, table_data
