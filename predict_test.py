@@ -45,21 +45,21 @@ start = time.time()
 num_folds = 10
 y_pred = np.zeros((len(mel_logs), 1))
 
-model = TorqueModel(
-    CONFIG['model_params']['out_features_conv'],
-    14,
-    CONFIG['model_params']['mid_features'],
-    n_channels=2
-)
-for i in range(num_folds):
-    fname = f'work_{CONFIG["experiment_name"][0]}_fold{i}.pt'
-    pretrained_path = os.path.join(MODEL_DIR, fname)
-    if not os.path.isfile(pretrained_path):
-        pretrained_path = search_file(fname)
-    model.load_state_dict(torch.load(pretrained_path, map_location=device))
-    prediction = get_prediction(data, mel_logs, model, device, n_feat=14, n_channels=2)
-    y_pred += prediction
-print("First model done")
+# model = TorqueModel(
+#     CONFIG['model_params']['out_features_conv'],
+#     14,
+#     CONFIG['model_params']['mid_features'],
+#     n_channels=2
+# )
+# for i in range(num_folds):
+#     fname = f'work_{CONFIG["experiment_name"][0]}_fold{i}.pt'
+#     pretrained_path = os.path.join(MODEL_DIR, fname)
+#     if not os.path.isfile(pretrained_path):
+#         pretrained_path = search_file(fname)
+#     model.load_state_dict(torch.load(pretrained_path, map_location=device))
+#     prediction = get_prediction(data, mel_logs, model, device, n_feat=14, n_channels=2)
+#     y_pred += prediction
+# print("First model done")
 
 model = TorqueModel(
     CONFIG['model_params']['out_features_conv'],
@@ -68,7 +68,7 @@ model = TorqueModel(
     n_channels=1
 )
 for i in range(num_folds):
-    fname = f'work_{CONFIG["experiment_name"][1]}_fold{i}.pt'
+    fname = f'work_{CONFIG["experiment_name"][0]}_fold{i}.pt'
     pretrained_path = os.path.join(MODEL_DIR, fname)
     if not os.path.isfile(pretrained_path):
         pretrained_path = search_file(fname)
@@ -77,22 +77,22 @@ for i in range(num_folds):
     y_pred += prediction
 print("Second model done")
 
-for i in range(num_folds):
-    fname = f'work_{CONFIG["experiment_name"][2]}_fold{i}.pt'
-    pretrained_path = os.path.join(MODEL_DIR, fname)
-    if not os.path.isfile(pretrained_path):
-        pretrained_path = search_file(fname)
-    model.load_state_dict(torch.load(pretrained_path, map_location=device))
-    prediction = get_prediction(data, mel_logs, model, device, n_feat=9, n_channels=1)
-    y_pred += prediction
-print("Third model done")
+# for i in range(num_folds):
+#     fname = f'work_{CONFIG["experiment_name"][2]}_fold{i}.pt'
+#     pretrained_path = os.path.join(MODEL_DIR, fname)
+#     if not os.path.isfile(pretrained_path):
+#         pretrained_path = search_file(fname)
+#     model.load_state_dict(torch.load(pretrained_path, map_location=device))
+#     prediction = get_prediction(data, mel_logs, model, device, n_feat=9, n_channels=1)
+#     y_pred += prediction
+# print("Third model done")
 
 print(f"Model predicted in {time.time() - start}s")
 start = time.time()
 
 df = pd.read_csv(csv_path)
 df = df[['filename']]
-df['result'] = y_pred / num_folds / 3
+df['result'] = y_pred / num_folds # / len(CONFIG["experiment_name"])
 df.to_csv(os.path.join(OUTPUT_DIR, 'result.csv'), index=False)
 
 print(f"Results saved in {time.time() - start}s")
