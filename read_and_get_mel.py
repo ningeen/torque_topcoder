@@ -8,7 +8,7 @@ from tqdm import tqdm
 from scipy.stats import skew
 
 
-CONFIG_PATH = "proj_config.yaml"
+CONFIG_PATH = "proj_config.yaml"  # "proj_config_nmel.yaml"
 try:
     with open(CONFIG_PATH, 'r') as stream:
         CONFIG = yaml.safe_load(stream)
