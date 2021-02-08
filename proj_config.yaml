@@ -21,7 +21,7 @@ channels: 1
 num_epochs: 40
 save_model: True
 model_dir: "./model/"
-experiment_name: ['origin_2ch']
+experiment_name: ['origin_2ch', 'origin_1ch_9f', 'part_new_augs']
 loader_params: {
   'batch_size': 16,
   'shuffle': 1,
