@@ -1,6 +1,13 @@
 sampling_rate: 192000  # 44100
 sampling_duration: 1.0
 
+#mel: {
+#       n_fft: 2560,
+#       hop_length: 355,
+#       n_mels: 64,
+#       mel_len: 595  # 1.1: 961, 1.0: 873, 0.5: 437
+#}
+
 mel: {
        n_fft: 2560,
        hop_length: 470,
@@ -8,13 +15,6 @@ mel: {
        mel_len: 450  # 1.1: 961, 1.0: 873, 0.5: 437
 }
 
-#sampling_rate = 44100
-#hop_length = 345 * 2
-#fmin = 20
-#fmax = sampling_rate // 2
-#n_mels = 128
-#n_fft = n_mels * 20
-#min_seconds = 0.5
 
 data_path: "./input/train_data_nmel.p"
 csv_path: "./input/training.csv"
@@ -52,7 +52,7 @@ scheduler_params: {
 
 model_params: {
   out_features_conv: 1000,
-  out_features_dence: 9,
+  out_features_dence: 14,
   mid_features: 500
 }
 
