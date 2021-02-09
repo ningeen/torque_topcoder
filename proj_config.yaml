@@ -1,53 +1,73 @@
-sampling_rate: 192000  # 44100
-sampling_duration: 1.0
+experiment_name: 'bootstrap'
 
+# Paths
+data_path: "/input/data.p"
+csv_path: "/input/training.csv"
+wav_dir: "/input/training/"
+folds_path: "/input/folds.p"
+weights_dir: "/weights/"
+test_input_path: 'input_for_pred.csv'
+
+# Audio params
+sampling_rate: 192000
+sampling_duration: 1.0
 mel: {
        n_fft: 1764,
        hop_length: 220,
        n_mels: 64,
-       mel_len: 961  # 1.1: 961, 1.0: 873, 0.5: 437
+       mel_len: 961
 }
-
-data_path: "./input/train_data.p"
-csv_path: "./input/training.csv"
-wav_dir: "./input/training/"
 max_val: 18.07428
 min_val: -100.0
 
-n_folds: 10
-fold_seed: 1337
+# Fold
+fold_params: {
+  n_splits: 10,
+  shuffle: True,
+  random_state: 1337
+}
 
-channels: 1
-num_epochs: 40
-save_model: True
-model_dir: "./model/"
-experiment_name: ['bootstrap']
+# Loader
 loader_params: {
-  'batch_size': 16,
-  'shuffle': 1,
+  'batch_size': 128,
+  'shuffle': True,
   'num_workers': 4,
-  'pin_memory': 0
-}
-#pretrained_path: './pretrained/mobilenetv3-small-55df8e1f.pth'
-pretrained_path: './pretrained/mobilenetv3-large-1cd25616.pth'
-
-lr: 0.0001
-warmup_prop: 0.1
-scheduler_params: {
-  'first_cycle_steps': 20,
-  'cycle_mult': 1.0,
-  'max_lr': 6,    # THIS IS MULTIPLIER!!!
-  'min_lr': 0.125,  # THIS IS MULTIPLIER!!!
-  'warmup_steps': 5,
-  'gamma': 0.9
+  'pin_memory': True
 }
 
+# Model
 model_params: {
   out_features_conv: 1000,
-  out_features_dence: 14,
-  mid_features: 500
+  out_features_dense: 14,
+  mid_features: 500,
+  n_channels: 1,
+  pretrained_path: '/pretrained/mobilenetv3-large-1cd25616.pth'
 }
 
+# Training
+num_epochs: 150
+save_model: True
+patience: 40
+bs_num: 150
+warmup_prop: 0.1
+lr: 0.0001
+scheduler_params: {
+  'first_cycle_steps': 150,
+  'cycle_mult': 1.0,
+  'max_lr': 0.001,
+  'min_lr': 0.00001,
+  'warmup_steps': 10,
+}
+
+# Predict test
+test:
+  model_names: ['bootstrap', 'bootstrap_2ch']
+  average_weights: [1, 1]
+  n_feats: [14, 14]
+  n_channels: [1, 2]
+  device: 'cpu'
+
+# Bad files
 ignore_files: [
   '00002.wav',
   '00044.wav',
