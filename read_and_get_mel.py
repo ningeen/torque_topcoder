@@ -8,8 +8,8 @@ from tqdm import tqdm
 from scipy.stats import skew
 
 
-# CONFIG_PATH = "proj_config.yaml"
-CONFIG_PATH = "proj_config_nmel.yaml"
+CONFIG_PATH = "proj_config.yaml"
+# CONFIG_PATH = "proj_config_nmel.yaml"
 try:
     with open(CONFIG_PATH, 'r') as stream:
         CONFIG = yaml.safe_load(stream)
@@ -62,8 +62,8 @@ class DataMelLoader:
             features.append(mel.astype(np.float32))
         return features
 
-    def get_data(self, to_save=True, is_train=True):
-        csv_path, wav_dir, data_path = self.config['csv_path'], self.config['wav_dir'], self.config['data_path']
+    def get_data(self, csv_path, wav_dir, data_path, to_save=True, is_train=True):
+        # csv_path, wav_dir, data_path = self.config['csv_path'], self.config['wav_dir'], self.config['data_path']
         df = pd.read_csv(csv_path)
         if is_train:
             df = df[~df['filename'].isin(self.config['ignore_files'])]
