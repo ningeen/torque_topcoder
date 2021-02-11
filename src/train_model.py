@@ -31,7 +31,17 @@ def seed_everything(seed=1234):
     torch.backends.cudnn.deterministic = True
 
 
-def process_epoch(model, criterion, optimizer, loader):
+def get_bootstraps(splits):
+    """Generate multiple boostrap samples for scoring"""
+    bootstraps = [np.array([])] * len(splits)
+    for n_fold, (_, indices) in enumerate(splits):
+        bootstraps[n_fold] = np.zeros((CONFIG['bs_num'], len(indices)), dtype=np.int16)
+        for i in range(CONFIG['bs_num']):
+            bootstraps[n_fold][i] = np.random.randint(len(indices), size=len(indices), dtype=np.int16)
+    return bootstraps
+
+
+def process_epoch(model, criterion, optimizer, loader, fold_bootstrap=None):
     """Calc one epoch"""
     losses = []
     y_true = []
@@ -56,15 +66,23 @@ def process_epoch(model, criterion, optimizer, loader):
     loss_train = np.array(losses).astype(np.float32).mean()
     y_true = np.concatenate(y_true)
     y_pred = np.concatenate(y_pred)
-    rmse_train = mean_squared_error(y_true, y_pred, squared=False)
-    return loss_train, rmse_train, y_true, y_pred
+    if fold_bootstrap is not None:
+        rmse = 0
+        for bs in fold_bootstrap:
+            rmse += mean_squared_error(y_true[bs], y_pred[bs], squared=False)
+        rmse = rmse / len(fold_bootstrap)
+    else:
+        rmse = mean_squared_error(y_true, y_pred, squared=False)
+    return loss_train, rmse, y_true, y_pred
 
 
-def train_model(model, criterion, optimizer, scheduler, train_loader, test_loader, n_fold):
+def train_model(model, criterion, optimizer, scheduler, train_loader, test_loader, bootstraps, n_fold):
     """Training loop"""
     logs = {'loss_train': [], 'loss_val': [], 'mse_train': [], 'mse_val': []}
     best_true = None
     best_pred = None
+    loss_counter = 0
+    patience = CONFIG['patience']
     for epoch in range(CONFIG['num_epochs']):
         start_time = time.time()
         scheduler.step()
@@ -79,14 +97,15 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
         # Validation
         model.eval()
         loss_val, mse_val, y_true, y_pred = \
-            process_epoch(model, criterion, optimizer, test_loader)
+            process_epoch(model, criterion, optimizer, test_loader, bootstraps[n_fold])
         logs['loss_val'].append(loss_val)
         logs['mse_val'].append(mse_val)
         print(
             f"Epoch #{epoch + 1}. "
             f"Time: {(time.time() - start_time):.1f}s. "
             f"Train loss: {loss_train:.3f}, train rmse: {mse_train:.5f}. "
-            f"Val loss: {loss_val:.3f}, val rmse: {mse_val:.5f}"
+            f"Val loss: {loss_val:.3f}, val rmse: {mse_val:.5f}",
+            "Best" if mse_val <= np.min(logs['mse_val']) else ""
         )
         if mse_val <= np.min(logs['mse_val']):
             if CONFIG['save_model']:
@@ -95,19 +114,18 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
                 torch.save(model.state_dict(), weights_path)
             best_true = y_true
             best_pred = y_pred
+            loss_counter = 0
+        else:
+            loss_counter += 1
+            if loss_counter >= patience:
+                print("Early stopping")
+                break
     return best_true, best_pred
 
 
-def run_training(all_data=None):
+def run_training(data, mel_logs, target, splits, bootstraps):
     """Run training"""
-    if all_data is None:
-        with open(CONFIG['data_path'], 'rb') as f:
-            (data, mel_logs, target) = pickle.load(f)
-    else:
-        (data, mel_logs, target) = all_data
-
-    splits = load_folds()
-
+    start_time = time.time()
     total_rmse = list()
     for n_fold, (train_idx, val_idx) in enumerate(splits):
         print(f"Start #{n_fold + 1} fold")
@@ -132,18 +150,30 @@ def run_training(all_data=None):
         scheduler = CosineAnnealingWarmupRestarts(optimizer, **CONFIG['scheduler_params'])
 
         best_true, best_pred = train_model(
-            model, criterion, optimizer, scheduler, train_loader, val_loader, n_fold
+            model, criterion, optimizer, scheduler, train_loader, val_loader, bootstraps, n_fold
         )
 
         rmse = mean_squared_error(best_true, best_pred, squared=False)
         print(f"Training done. Best rmse: {rmse}")
         total_rmse.append(rmse)
-    print(f"Total rmse: {np.mean(total_rmse)}")
+    print(f"Total time: {(time.time() - start_time) / 60}m")
+    print(f"Total rmse: {np.mean(total_rmse)} +- {np.std(total_rmse)}")
+
+
+def main(all_data=None):
+    """Load data and run training"""
+    if all_data is None:
+        with open(CONFIG['data_path'], 'rb') as f:
+            (data, mel_logs, target) = pickle.load(f)
+    else:
+        (data, mel_logs, target) = all_data
+    splits = load_folds()
+    bootstraps = get_bootstraps(splits)
+    run_training(data, mel_logs, target, splits, bootstraps)
 
 
 if __name__ == "__main__":
     OUTPUT_DIR = sys.argv[1]
     CONFIG['weights_dir'] = OUTPUT_DIR
-
     seed_everything()
-    run_training()
+    main()
