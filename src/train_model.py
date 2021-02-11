@@ -1,7 +1,8 @@
+import logging
 import os
-import sys
 import pickle
 import random
+import sys
 import time
 
 import numpy as np
@@ -11,12 +12,13 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from augmentations import spec_augment
+from config import CONFIG
 from cosine_annearing_with_warmup import CosineAnnealingWarmupRestarts
 from folds import load_folds
 from pytorch_dataset import TorqueDataset
 from pytorch_model import TorqueModel
-from config import CONFIG
 
+logger = logging.getLogger(__name__)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.backends.cudnn.benchmark = True
 
@@ -29,6 +31,7 @@ def seed_everything(seed=1234):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
+    logger.info("Seeds fixed")
 
 
 def get_bootstraps(splits):
@@ -38,6 +41,7 @@ def get_bootstraps(splits):
         bootstraps[n_fold] = np.zeros((CONFIG['bs_num'], len(indices)), dtype=np.int16)
         for i in range(CONFIG['bs_num']):
             bootstraps[n_fold][i] = np.random.randint(len(indices), size=len(indices), dtype=np.int16)
+    logger.info("Boostrap validation samples generated.")
     return bootstraps
 
 
@@ -85,6 +89,9 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
     patience = CONFIG['patience']
     for epoch in range(CONFIG['num_epochs']):
         start_time = time.time()
+        weights_filename = f"work_{CONFIG['experiment_name']}_fold{n_fold}.pt"
+        weights_path = os.path.join(CONFIG['weights_dir'], weights_filename)
+
         scheduler.step()
 
         # Training
@@ -100,17 +107,15 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
             process_epoch(model, criterion, optimizer, test_loader, bootstraps[n_fold])
         logs['loss_val'].append(loss_val)
         logs['mse_val'].append(mse_val)
-        print(
-            f"Epoch #{epoch + 1}. "
-            f"Time: {(time.time() - start_time):.1f}s. "
-            f"Train loss: {loss_train:.3f}, train rmse: {mse_train:.5f}. "
-            f"Val loss: {loss_val:.3f}, val rmse: {mse_val:.5f}",
+        logger.debug(
+            "Epoch #%d. Time: %.1f s. Train loss: %.3f, train rmse: %.3f. Val loss: %.3f, val rmse: %.3f %s",
+            epoch + 1, time.time() - start_time,
+            loss_train, mse_train,
+            loss_val, mse_val,
             "Best" if mse_val <= np.min(logs['mse_val']) else ""
         )
         if mse_val <= np.min(logs['mse_val']):
             if CONFIG['save_model']:
-                weights_filename = f"work_{CONFIG['experiment_name']}_fold{n_fold}.pt"
-                weights_path = os.path.join(CONFIG['weights_dir'], weights_filename)
                 torch.save(model.state_dict(), weights_path)
             best_true = y_true
             best_pred = y_pred
@@ -118,8 +123,9 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
         else:
             loss_counter += 1
             if loss_counter >= patience:
-                print("Early stopping")
+                logger.info("Early stopping at %d epoch", epoch)
                 break
+        logger.debug("Weights saved in %s", weights_path)
     return best_true, best_pred
 
 
@@ -128,7 +134,7 @@ def run_training(data, mel_logs, target, splits, bootstraps):
     start_time = time.time()
     total_rmse = list()
     for n_fold, (train_idx, val_idx) in enumerate(splits):
-        print(f"Start #{n_fold + 1} fold")
+        logger.info("Start #%d fold", n_fold + 1)
         train_dataset = TorqueDataset(
             data[train_idx],
             [mel_logs[i] for i in train_idx],
@@ -154,10 +160,10 @@ def run_training(data, mel_logs, target, splits, bootstraps):
         )
 
         rmse = mean_squared_error(best_true, best_pred, squared=False)
-        print(f"Training done. Best rmse: {rmse}")
+        logger.info("Training done. Best rmse: %.3f", rmse)
         total_rmse.append(rmse)
-    print(f"Total time: {(time.time() - start_time) / 60}m")
-    print(f"Total rmse: {np.mean(total_rmse)} +- {np.std(total_rmse)}")
+    logger.info("Total time: %.1f m", (time.time() - start_time) / 60)
+    logger.info("Total rmse: %.3f +- %.3f", np.mean(total_rmse), np.std(total_rmse))
 
 
 def main(all_data=None):

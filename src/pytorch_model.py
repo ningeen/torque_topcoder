@@ -1,8 +1,12 @@
+import logging
+
 import torch
 import torch.nn.functional as F
 from torch import nn
 
 from mobilenetv3 import mobilenetv3_large
+
+logger = logging.getLogger(__name__)
 
 
 def get_mobilenet_model(n_channels, pretrained_path=None):
@@ -18,7 +22,7 @@ def get_mobilenet_model(n_channels, pretrained_path=None):
     elif n_channels == 2:
         model.features[0][0].weight.data = model.features[0][0].weight.data[:, :2]
     model.features[0][0].in_channels = n_channels
-
+    logger.debug("Mobilenet loaded. Input channels: %d", n_channels)
     return model
 
 

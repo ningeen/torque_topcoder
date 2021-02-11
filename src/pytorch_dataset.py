@@ -1,7 +1,11 @@
+import logging
+
 import numpy as np
 from torch.utils.data import Dataset
 
 from config import CONFIG
+
+logger = logging.getLogger(__name__)
 
 
 class TorqueDataset(Dataset):
@@ -17,6 +21,13 @@ class TorqueDataset(Dataset):
         self.mode = 'test' if self.labels is None else 'train'
         self.n_feat = n_feat
         self.n_channels = n_channels
+        logger.debug(
+            "Dataset initialized with length: %d. Labels: %s, transform: %s, n_feat: %d, n_channels: %d",
+            len(mel_logs),
+            "yes" if labels is not None else "no",
+            "yes" if transform is not None else "no",
+            n_feat, n_channels
+        )
 
     def __len__(self):
         """Length"""

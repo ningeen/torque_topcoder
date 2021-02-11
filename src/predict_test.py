@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -11,6 +12,8 @@ from config import CONFIG
 from pytorch_dataset import TorqueDataset
 from pytorch_model import TorqueModel
 from read_and_get_mel import DataMelLoader
+
+logger = logging.getLogger(__name__)
 
 
 def get_prediction(data, mel_logs, model, device, n_feat, n_channels=1):
@@ -41,7 +44,9 @@ def search_file(fname):
     for dirpath, dirnames, filenames in os.walk("../"):
         for filename in filenames:
             if filename == fname:
-                return os.path.join(dirpath, filename)
+                result_path = os.path.join(dirpath, filename)
+                logger.debug("Weights found in %s", result_path)
+                return result_path
     return fname
 
 
@@ -51,7 +56,7 @@ def load_files(csv_path, input_audio, data_path):
     data, mel_logs, _ = DataMelLoader(CONFIG).get_data(
         csv_path=csv_path, wav_dir=input_audio, data_path=data_path, to_save=False, is_train=False
     )
-    print(f"Files loaded in {time.time() - start}s")
+    logger.info("Files loaded in %.1f s", time.time() - start)
     return data, mel_logs
 
 
@@ -70,11 +75,12 @@ def predict_test(data, mel_logs, model_name, model_dir, n_feat, n_channels, num_
         fname = f'work_{model_name}_fold{i}.pt'
         pretrained_path = os.path.join(model_dir, fname)
         if not os.path.isfile(pretrained_path):
+            logger.warning("Weights not found in %s", pretrained_path)
             pretrained_path = search_file(fname)
         model.load_state_dict(torch.load(pretrained_path, map_location=device))
         prediction = get_prediction(data, mel_logs, model, device, n_feat=n_feat, n_channels=n_channels)
         y_pred += prediction
-    print(f"{model_name} model done in {time.time() - start}s")
+    logger.info("%s model done in %.1f s", model_name, time.time() - start)
     return y_pred / num_folds
 
 
@@ -115,7 +121,6 @@ def main():
         INPUT_AUDIO = sys.argv[2]
         OUTPUT_DIR = sys.argv[3]
 
-    pretrained_weights_dir = os.path.join('code', CONFIG['weights_dir'])
     data_path = os.path.basename(CONFIG['data_path'])
     device = torch.device(CONFIG['test']['device'])
     csv_path = os.path.join(INPUT_AUDIO, CONFIG['test_input_path'])

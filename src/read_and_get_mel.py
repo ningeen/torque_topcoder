@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import pickle
@@ -7,6 +8,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import skew
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 class DataMelLoader:
@@ -44,6 +47,7 @@ class DataMelLoader:
             path = os.path.join(folder, filename)
             wav = self.read_file(path)
             features.append(wav)
+        logger.info("Loaded %d audio files", len(features))
         return features
 
     def get_mel(self, wav_files):
@@ -53,6 +57,7 @@ class DataMelLoader:
             mel = self.wav_to_mel(wav)
             mel = self.normalize(mel)
             features.append(mel.astype(np.float32))
+        logger.info("Files converted to mel spectrogram")
         return features
 
     def make_features(self, df, wav_files):
@@ -70,6 +75,7 @@ class DataMelLoader:
         data['sound_max'] = [wav.max() for wav in wav_files]
         data['sound_std'] = [wav.std() for wav in wav_files]
         data['sound_skew'] = [skew(wav) for wav in wav_files]
+        logger.debug("Generated %d features", data.shape[1])
         return data
 
     def get_data(self, csv_path=None, wav_dir=None, data_path=None, to_save=False, is_train=True):
@@ -94,7 +100,8 @@ class DataMelLoader:
         if to_save:
             with open(data_path, 'wb') as f:
                 pickle.dump((data, mel_logs, target), f)
-            print(f"Data saved in {data_path}")
+            logger.info("Data saved in %s", data_path)
+        logger.info("Data successfully loaded")
         return data, mel_logs, target
 
 
@@ -106,6 +113,6 @@ if __name__ == "__main__":
         CONFIG['wav_dir'] = TRAIN_AUDIO
         CONFIG['csv_path'] = os.path.join(TRAIN_GT, 'training.csv')
     except:
-        print("Using default paths")
+        logger.info("Using default paths")
 
     DataMelLoader(CONFIG).get_data(to_save=True)
