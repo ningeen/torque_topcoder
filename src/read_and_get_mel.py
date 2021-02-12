@@ -9,6 +9,8 @@ import pandas as pd
 from scipy.stats import skew
 from tqdm import tqdm
 
+from config import CONFIG
+
 logger = logging.getLogger(__name__)
 
 
@@ -105,14 +107,13 @@ class DataMelLoader:
         return data, mel_logs, target
 
 
-if __name__ == "__main__":
-    from config import CONFIG
-    try:
-        TRAIN_AUDIO = sys.argv[1]
-        TRAIN_GT = sys.argv[2]
-        CONFIG['wav_dir'] = TRAIN_AUDIO
-        CONFIG['csv_path'] = os.path.join(TRAIN_GT, 'training.csv')
-    except:
-        logger.info("Using default paths")
-
+def main(train_audio=None, train_gt=None):
+    if train_audio is not None:
+        CONFIG['wav_dir'] = train_audio
+    if train_gt is not None:
+        CONFIG['csv_path'] = os.path.join(train_gt, 'training.csv')
     DataMelLoader(CONFIG).get_data(to_save=True)
+
+
+if __name__ == "__main__":
+    main()

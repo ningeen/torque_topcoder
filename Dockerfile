@@ -1,7 +1,7 @@
 FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
 
 RUN mkdir /code && mkdir /input && mkdir /pretrained
-COPY ["./proj_config.yaml", "./requirements.txt", "./inference/train.sh", "./inference/pred.sh", "/code/"]
+COPY ["./proj_config.yaml", "./logging.conf.yml", "./requirements.txt", "./inference/train.sh", "./inference/pred.sh", "/code/"]
 COPY /src/* /code/
 COPY /model/bootstrap/* /code/weights/
 COPY /model/bootstrap_2ch/* /code/weights/

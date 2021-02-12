@@ -87,10 +87,10 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
     best_pred = None
     loss_counter = 0
     patience = CONFIG['patience']
+    weights_filename = f"work_{CONFIG['experiment_name']}_fold{n_fold}.pt"
+    weights_path = os.path.join(CONFIG['weights_dir'], weights_filename)
     for epoch in range(CONFIG['num_epochs']):
         start_time = time.time()
-        weights_filename = f"work_{CONFIG['experiment_name']}_fold{n_fold}.pt"
-        weights_path = os.path.join(CONFIG['weights_dir'], weights_filename)
 
         scheduler.step()
 
@@ -125,7 +125,7 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, test_loade
             if loss_counter >= patience:
                 logger.info("Early stopping at %d epoch", epoch)
                 break
-        logger.debug("Weights saved in %s", weights_path)
+    logger.debug("Weights saved in %s", weights_path)
     return best_true, best_pred
 
 
@@ -166,8 +166,13 @@ def run_training(data, mel_logs, target, splits, bootstraps):
     logger.info("Total rmse: %.3f +- %.3f", np.mean(total_rmse), np.std(total_rmse))
 
 
-def main(all_data=None):
+def main(all_data=None, output_dir=None):
     """Load data and run training"""
+    seed_everything()
+
+    if output_dir is not None:
+        CONFIG['weights_dir'] = output_dir
+
     if all_data is None:
         with open(CONFIG['data_path'], 'rb') as f:
             (data, mel_logs, target) = pickle.load(f)
@@ -179,7 +184,4 @@ def main(all_data=None):
 
 
 if __name__ == "__main__":
-    OUTPUT_DIR = sys.argv[1]
-    CONFIG['weights_dir'] = OUTPUT_DIR
-    seed_everything()
     main()

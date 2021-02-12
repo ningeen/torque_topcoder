@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import os
 import sys
 import time
@@ -6,6 +7,7 @@ import time
 import numpy as np
 import pandas as pd
 import torch
+import yaml
 from torch.utils.data import DataLoader
 
 from config import CONFIG
@@ -13,6 +15,9 @@ from pytorch_dataset import TorqueDataset
 from pytorch_model import TorqueModel
 from read_and_get_mel import DataMelLoader
 
+LOG_PATH = '/code/logging.conf.yml'
+with open(LOG_PATH) as config_fin:
+    logging.config.dictConfig(yaml.safe_load(config_fin))
 logger = logging.getLogger(__name__)
 
 
@@ -75,7 +80,7 @@ def predict_test(data, mel_logs, model_name, model_dir, n_feat, n_channels, num_
         fname = f'work_{model_name}_fold{i}.pt'
         pretrained_path = os.path.join(model_dir, fname)
         if not os.path.isfile(pretrained_path):
-            logger.warning("Weights not found in %s", pretrained_path)
+            logger.debug("Weights not found in %s", pretrained_path)
             pretrained_path = search_file(fname)
         model.load_state_dict(torch.load(pretrained_path, map_location=device))
         prediction = get_prediction(data, mel_logs, model, device, n_feat=n_feat, n_channels=n_channels)
@@ -108,6 +113,7 @@ def save_result(csv_path, output_dir, result):
     df = df[['filename']]
     df['result'] = result
     df.to_csv(os.path.join(output_dir, 'result.csv'), index=False)
+    logger.info("Predictions were successfully saved.")
 
 
 def main():
