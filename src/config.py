@@ -2,7 +2,7 @@ import os
 
 import yaml
 
-CONFIG_PATH = "proj_config.yaml"
+CONFIG_PATH = "proj_config.yml"
 try:
     with open(CONFIG_PATH, 'r') as stream:
         CONFIG = yaml.safe_load(stream)

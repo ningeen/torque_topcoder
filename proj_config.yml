@@ -5,7 +5,7 @@ data_path: "/input/data.p"
 csv_path: "/input/training.csv"
 wav_dir: "/input/training/"
 folds_path: "/input/folds.p"
-weights_dir: "/weights/"
+weights_dir: "/code/weights/"
 test_input_path: 'input_for_pred.csv'
 
 # Audio params
