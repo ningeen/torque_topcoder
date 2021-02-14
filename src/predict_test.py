@@ -1,8 +1,8 @@
 import logging
 import logging.config
 import os
-import sys
 import time
+from argparse import ArgumentParser
 
 import numpy as np
 import pandas as pd
@@ -19,6 +19,31 @@ LOG_PATH = '/code/logging.conf.yml'
 with open(LOG_PATH) as config_fin:
     logging.config.dictConfig(yaml.safe_load(config_fin))
 logger = logging.getLogger(__name__)
+
+
+def get_prediction_args():
+    """Parse arguments from command line"""
+    parser = ArgumentParser(
+        prog="Training model",
+    )
+    parser.add_argument(
+        "model_dir",
+        help="Directory with saved model weights",
+        default=None
+    )
+    parser.add_argument(
+        "input_audio",
+        help="Path to audio *.wav and *.csv files directory for prediction",
+        default=None
+    )
+    parser.add_argument(
+        "output_dir",
+        help="Path where to save result",
+        default=None
+    )
+    args = parser.parse_args()
+    logger.debug("Arguments parsed.")
+    return args
 
 
 def get_prediction(data, mel_logs, model, device, n_feat, n_channels=1):
@@ -118,22 +143,15 @@ def save_result(csv_path, output_dir, result):
 
 def main():
     """Main script"""
-    if len(sys.argv) != 4:
-        MODEL_DIR = "./"
-        INPUT_AUDIO = "../../pred/"
-        OUTPUT_DIR = "./"
-    else:
-        MODEL_DIR = sys.argv[1]
-        INPUT_AUDIO = sys.argv[2]
-        OUTPUT_DIR = sys.argv[3]
+    args = get_prediction_args()
 
     data_path = os.path.basename(CONFIG['data_path'])
     device = torch.device(CONFIG['test']['device'])
-    csv_path = os.path.join(INPUT_AUDIO, CONFIG['test_input_path'])
+    csv_path = os.path.join(args.input_audio, CONFIG['test_input_path'])
 
-    data, mel_logs = load_files(csv_path, INPUT_AUDIO, data_path)
-    result = make_prediction(data, mel_logs, MODEL_DIR, device)
-    save_result(csv_path, OUTPUT_DIR, result)
+    data, mel_logs = load_files(csv_path, args.input_audio, data_path)
+    result = make_prediction(data, mel_logs, args.model_dir, device)
+    save_result(csv_path, args.output_dir, result)
 
 
 if __name__ == '__main__':
