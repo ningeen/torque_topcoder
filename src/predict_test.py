@@ -90,6 +90,20 @@ def load_files(csv_path, input_audio, data_path):
     return data, mel_logs
 
 
+def get_weights_path(weights_file_name: str, model_dirs: list):
+    """
+    Returns path with model weights
+    :param model_dirs: list of possible weights dir sorted by priority
+    """
+    for model_dir in model_dirs:
+        pretrained_path = os.path.join(model_dir, weights_file_name)
+        if os.path.isfile(pretrained_path):
+            return pretrained_path
+        else:
+            logger.debug("Weights not found in %s", pretrained_path)
+    return search_file(weights_file_name)
+
+
 def predict_test(data, mel_logs, model_name, model_dir, n_feat, n_channels, num_folds, device):
     """Get average prediction from different folds models"""
     start = time.time()
@@ -102,11 +116,8 @@ def predict_test(data, mel_logs, model_name, model_dir, n_feat, n_channels, num_
         n_channels=n_channels
     )
     for i in range(num_folds):
-        fname = f'work_{model_name}_fold{i}.pt'
-        pretrained_path = os.path.join(model_dir, fname)
-        if not os.path.isfile(pretrained_path):
-            logger.debug("Weights not found in %s", pretrained_path)
-            pretrained_path = search_file(fname)
+        weights_file_name = f'work_{model_name}_fold{i}.pt'
+        pretrained_path = get_weights_path(weights_file_name, [CONFIG['weights_dir'], model_dir])
         model.load_state_dict(torch.load(pretrained_path, map_location=device))
         prediction = get_prediction(data, mel_logs, model, device, n_feat=n_feat, n_channels=n_channels)
         y_pred += prediction
