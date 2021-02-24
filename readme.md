@@ -1,9 +1,9 @@
-# Solution for ["Predict the torque"](https://www.topcoder.com/challenges/07596fc0-961b-471b-aca9-0932501ef594) Topcoder challenge
+# 6th place solution for ["Predict the torque"](https://www.topcoder.com/challenges/07596fc0-961b-471b-aca9-0932501ef594) Topcoder challenge
 ## Problem Description
 
 In this problem, you will be given an audio file containing the sound made while bolting steel material on a construction site. Your code should read the audio file and predict the torque value of it.  
 **Metric**: RMSE.  
-**Inference**: Only CPU and must not take any longer than 10 minutes. 
+**Inference**: Only CPU and must not take any longer than 10 minutes.  
 
 ## Solution
 To run training:
